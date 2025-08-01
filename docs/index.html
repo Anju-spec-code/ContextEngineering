@@ -1,339 +1,304 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Context Engineering Architecture – Enterprise</title>
-  <style>
-    :root { --bg:#ffffff; --text:#0f172a; --muted:#334155; --border:#e5e7eb; }
-    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); }
-    .wrap { max-width:1400px; margin:24px auto; padding:0 16px; overflow-x:auto; }
-    header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    h1 { font-size:20px; margin:0; }
-    .actions { display:flex; gap:8px; flex-wrap:wrap; }
-    button { border:1px solid var(--border); padding:8px 12px; border-radius:10px; background:#f8fafc; cursor:pointer; font-size:14px; }
-    button:hover { background:#eef2ff; }
-    .panel { font-size:12px; color:var(--muted); margin-bottom:8px; }
-    svg { width:100%; height:auto; border:1px solid var(--border); border-radius:12px; background:#fff; overflow:visible; }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Context Engineering Architecture – Enterprise+</title>
+<style>
+  :root{--bg:#fff;--text:#0f172a;--muted:#334155;--border:#e5e7eb}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);background:var(--bg)}
+  .wrap{max-width:1400px;margin:24px auto;padding:0 16px;overflow-x:auto}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:20px;margin:0}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  button{border:1px solid var(--border);padding:8px 12px;border-radius:10px;background:#f8fafc;cursor:pointer;font-size:14px}
+  button:hover{background:#eef2ff}
+  .panel{font-size:12px;color:var(--muted);margin-bottom:8px}
+  svg{width:100%;height:auto;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:visible}
 
-    /* SVG-inside styles */
-    .lane { fill:#ffffff; stroke:#bbb; stroke-width:1; rx:12; ry:12; }
-    .box  { fill:#f8f9fa; stroke:#333; stroke-width:1.5; rx:10; ry:10; transition:fill .15s, stroke .15s; }
-    .box:hover { fill:#eef6ff; stroke:#1f4d8f; }
-    .title { font:bold 16px sans-serif; fill:#111; }
-    .text  { font:14px sans-serif; fill:#333; }
-    .small { font:12px sans-serif; fill:#444; }
-    .grp-title { font:bold 18px sans-serif; fill:#0f172a; }
-
-    .arrow { stroke:#333; stroke-width:2; marker-end:url(#arrowhead); stroke-dasharray:6 6; animation:flow 2.2s linear infinite; }
-    .arrow:hover { stroke-width:3; }
-    @keyframes flow { to { stroke-dashoffset:-120; } }
-
-    #tip { position:fixed; pointer-events:none; padding:6px 8px; font-size:12px;
-           background:#0f172a; color:#fff; border-radius:6px; opacity:0; transform:translateY(-6px);
-           transition:opacity .12s, transform .12s; }
-  </style>
+  /* SVG styles */
+  .lane{fill:#fff;stroke:#bbb;stroke-width:1;rx:12;ry:12}
+  .box{fill:#f8f9fa;stroke:#333;stroke-width:1.5;rx:10;ry:10;transition:fill .15s,stroke .15s}
+  .box:hover{fill:#eef6ff;stroke:#1f4d8f}
+  .title{font:bold 16px sans-serif;fill:#111}
+  .text{font:14px sans-serif;fill:#333}
+  .small{font:12px sans-serif;fill:#444}
+  .grp-title{font:bold 18px sans-serif;fill:#0f172a}
+  .arrow{stroke:#333;stroke-width:2;marker-end:url(#arrowhead);stroke-dasharray:6 6;animation:flow 2.2s linear infinite}
+  .arrow:hover{stroke-width:3}
+  @keyframes flow{to{stroke-dashoffset:-120}}
+  #tip{position:fixed;pointer-events:none;padding:6px 8px;font-size:12px;background:#0f172a;color:#fff;border-radius:6px;opacity:0;transform:translateY(-6px);transition:opacity .12s,transform .12s}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Context Engineering Architecture – Enterprise</h1>
-      <div class="actions">
-        <button id="save1x">Export PNG (1×)</button>
-        <button id="save2x">Export PNG (2×)</button>
-      </div>
-    </header>
-    <div class="panel">Hover boxes or arrows for quick hints. Use the buttons to export a PNG directly from this page.</div>
+<div class="wrap">
+  <header>
+    <h1>Context Engineering Architecture – Enterprise+</h1>
+    <div class="actions">
+      <button id="save1x">Export PNG (1×)</button>
+      <button id="save2x">Export PNG (2×)</button>
+    </div>
+  </header>
+  <div class="panel">Adds identity-aware retrieval, policy-as-code, embedding registry, freshness jobs, session memory, quotas & metrics legend.</div>
 
-    <!-- Important: viewBox enables proper scaling; preserveAspectRatio prevents clipping -->
-    <svg id="arch" width="1400" height="950" viewBox="0 0 1400 950"
-         preserveAspectRatio="xMidYMid meet"
-         xmlns="http://www.w3.org/2000/svg" role="img"
-         aria-label="Context Engineering Architecture">
+  <svg id="arch" width="1400" height="980" viewBox="0 0 1400 980" preserveAspectRatio="xMidYMid meet"
+       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context Engineering Architecture">
 
-      <!-- Arrowhead -->
-      <defs>
-        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-          <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
-        </marker>
-      </defs>
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+      </marker>
+    </defs>
 
-      <!-- Swimlanes -->
-      <rect x="20"  y="20"  width="220" height="910" class="lane"/>
-      <text x="30"  y="45" class="grp-title">Sources</text>
+    <!-- Swimlanes -->
+    <rect x="20"  y="20"  width="220" height="940" class="lane"/><text x="30"  y="45" class="grp-title">Sources</text>
+    <rect x="260" y="20"  width="240" height="940" class="lane"/><text x="270" y="45" class="grp-title">Ingestion &amp; Governance</text>
+    <rect x="520" y="20"  width="260" height="940" class="lane"/><text x="530" y="45" class="grp-title">Storage &amp; Indexing</text>
+    <rect x="800" y="20"  width="280" height="940" class="lane"/><text x="810" y="45" class="grp-title">Context Engineering</text>
+    <rect x="1100" y="20" width="280" height="940" class="lane"/><text x="1110" y="45" class="grp-title">Orchestration &amp; Trust</text>
 
-      <rect x="260" y="20"  width="240" height="910" class="lane"/>
-      <text x="270" y="45" class="grp-title">Ingestion &amp; Governance</text>
+    <!-- Sources -->
+    <g>
+      <rect x="30" y="70" width="200" height="150" class="box"><title>Enterprise Data: CRM/ERP, OLTP, Lakehouse, Files</title></rect>
+      <text x="45" y="95" class="title">Enterprise Data</text>
+      <text x="45" y="120" class="text">CRM/ERP, OLTP DBs</text>
+      <text x="45" y="140" class="text">Data Lake/Lakehouse</text>
+      <text x="45" y="160" class="text">File Shares (PDF, DOCX)</text>
+    </g>
+    <g>
+      <rect x="30" y="240" width="200" height="150" class="box"><title>SaaS &amp; Docs: Confluence, SharePoint, Slack/Teams, Email, KB/Policies</title></rect>
+      <text x="45" y="265" class="title">SaaS &amp; Docs</text>
+      <text x="45" y="290" class="text">Confluence, SharePoint</text>
+      <text x="45" y="310" class="text">Slack/Teams, Email</text>
+      <text x="45" y="330" class="text">KB/Policies</text>
+    </g>
+    <g>
+      <rect x="30" y="410" width="200" height="150" class="box"><title>Logs &amp; Streams: Kafka/Kinesis, Product Events, Chats</title></rect>
+      <text x="45" y="435" class="title">Logs &amp; Streams</text>
+      <text x="45" y="460" class="text">Kafka/Kinesis</text>
+      <text x="45" y="480" class="text">Product/Click Events</text>
+      <text x="45" y="500" class="text">Chat Transcripts</text>
+    </g>
+    <g>
+      <rect x="30" y="580" width="200" height="150" class="box"><title>Domain Assets: Schemas, Ontologies, Taxonomies, PII Catalog</title></rect>
+      <text x="45" y="605" class="title">Domain Assets</text>
+      <text x="45" y="630" class="text">Schemas, Ontologies</text>
+      <text x="45" y="650" class="text">Taxonomies</text>
+      <text x="45" y="670" class="text">PII Catalog</text>
+    </g>
+    <g>
+      <rect x="30" y="750" width="200" height="150" class="box"><title>Identity &amp; Entitlements: IdP/HRIS, Groups/Roles, Claims</title></rect>
+      <text x="45" y="775" class="title">Identity &amp; Entitlements</text>
+      <text x="45" y="800" class="text">IdP/HRIS (SSO)</text>
+      <text x="45" y="820" class="text">Groups, Roles, Claims</text>
+      <text x="45" y="840" class="text">Region/Residency Flags</text>
+    </g>
 
-      <rect x="520" y="20"  width="260" height="910" class="lane"/>
-      <text x="530" y="45" class="grp-title">Storage &amp; Indexing</text>
+    <!-- Ingestion & Governance -->
+    <g>
+      <rect x="270" y="70" width="220" height="140" class="box"><title>Connectors &amp; CDC: Incremental Sync, Parsers/OCR</title></rect>
+      <text x="285" y="95" class="title">Connectors &amp; CDC</text>
+      <text x="285" y="120" class="text">Incremental Sync, Batching</text>
+      <text x="285" y="140" class="text">File Parsers (PDF/OCR)</text>
+    </g>
+    <g>
+      <rect x="270" y="230" width="220" height="140" class="box"><title>Pre-Proc &amp; Chunking: Semantic chunking, Metadata enrichment, Embedding registry/versioning</title></rect>
+      <text x="285" y="255" class="title">Pre-Proc &amp; Chunking</text>
+      <text x="285" y="280" class="text">Semantic Chunking</text>
+      <text x="285" y="300" class="text">Metadata Enrichment</text>
+      <text x="285" y="320" class="text">Embedding Registry &amp; Versioning</text>
+    </g>
+    <g>
+      <rect x="270" y="390" width="220" height="140" class="box"><title>Governance: Data contracts, PII redaction, RBAC/ABAC</title></rect>
+      <text x="285" y="415" class="title">Governance</text>
+      <text x="285" y="440" class="text">Data Contracts</text>
+      <text x="285" y="460" class="text">PII Detection/Redaction</text>
+      <text x="285" y="480" class="text">Row/Column RBAC/ABAC</text>
+    </g>
+    <g>
+      <rect x="270" y="550" width="220" height="140" class="box"><title>Quality &amp; Lineage: Schema tests, lineage, quarantine</title></rect>
+      <text x="285" y="575" class="title">Quality &amp; Lineage</text>
+      <text x="285" y="600" class="text">DQ Checks, Schema Tests</text>
+      <text x="285" y="620" class="text">Lineage to Source</text>
+    </g>
+    <g>
+      <rect x="270" y="710" width="220" height="140" class="box"><title>Policy-as-Code: OPA/Cedar rules applied at ingest &amp; retrieval</title></rect>
+      <text x="285" y="735" class="title">Policy-as-Code</text>
+      <text x="285" y="760" class="text">OPA/Cedar Rules</text>
+      <text x="285" y="780" class="text">Same Policy Ingest↔Retrieval</text>
+    </g>
 
-      <rect x="800" y="20"  width="280" height="910" class="lane"/>
-      <text x="810" y="45" class="grp-title">Context Engineering</text>
+    <!-- Storage & Indexing -->
+    <g>
+      <rect x="530" y="70" width="240" height="130" class="box"><title>Storage: Object store/doc store with shared docID join key</title></rect>
+      <text x="545" y="95" class="title">Storage</text>
+      <text x="545" y="120" class="text">Lakehouse/Object Store</text>
+      <text x="545" y="140" class="text">DocID as Join Key</text>
+    </g>
+    <g>
+      <rect x="530" y="220" width="240" height="130" class="box"><title>Vector &amp; Graph: ANN (HNSW/IVF-PQ), Knowledge Graph</title></rect>
+      <text x="545" y="245" class="title">Vector &amp; Graph</text>
+      <text x="545" y="270" class="text">ANN (HNSW/IVF-PQ)</text>
+      <text x="545" y="290" class="text">Knowledge Graph</text>
+    </g>
+    <g>
+      <rect x="530" y="370" width="240" height="130" class="box"><title>Search Indexes: BM25/Inverted, Hybrid (Sparse+Dense), TTL/Temporal</title></rect>
+      <text x="545" y="395" class="title">Search Indexes</text>
+      <text x="545" y="420" class="text">BM25/Inverted</text>
+      <text x="545" y="440" class="text">Hybrid (Sparse+Dense)</text>
+      <text x="545" y="460" class="text">Temporal/TTL Partitions</text>
+    </g>
+    <g>
+      <rect x="530" y="520" width="240" height="130" class="box"><title>Semantic Cache: Answer/context cache, embeddings TTL</title></rect>
+      <text x="545" y="545" class="title">Semantic Cache</text>
+      <text x="545" y="570" class="text">Answer/Context Cache</text>
+      <text x="545" y="590" class="text">Embeddings w/ TTL</text>
+    </g>
+    <g>
+      <rect x="530" y="670" width="240" height="140" class="box"><title>Index Freshness Jobs: Re-embed queue, incremental upserts, alerts</title></rect>
+      <text x="545" y="695" class="title">Index Freshness Jobs</text>
+      <text x="545" y="720" class="text">Re-embed Queue</text>
+      <text x="545" y="740" class="text">Incremental Upserts</text>
+      <text x="545" y="760" class="text">Staleness Alerts</text>
+    </g>
 
-      <rect x="1100" y="20" width="280" height="910" class="lane"/>
-      <text x="1110" y="45" class="grp-title">Orchestration &amp; Trust</text>
+    <!-- Context Engineering -->
+    <g>
+      <rect x="810" y="70" width="260" height="140" class="box"><title>Query Understanding: Intent, Entities, Router, Language</title></rect>
+      <text x="825" y="95" class="title">Query Understanding</text>
+      <text x="825" y="120" class="text">Intent/Entities, Language</text>
+      <text x="825" y="140" class="text">Task Router</text>
+    </g>
+    <g>
+      <rect x="810" y="230" width="260" height="180" class="box"><title>Planner &amp; Retrieval: Multi-index fan-out, policy-aware filters, time-decay, re-rank</title></rect>
+      <text x="825" y="255" class="title">Planner &amp; Retrieval</text>
+      <text x="825" y="280" class="text">Multi-Index Fan-out</text>
+      <text x="825" y="300" class="text">Policy-Aware Filters</text>
+      <text x="825" y="320" class="text">Recency/Time-Decay</text>
+      <text x="825" y="340" class="text">Cross-Encoder Re-rank</text>
+    </g>
+    <g>
+      <rect x="810" y="430" width="260" height="160" class="box"><title>Context Builder: Dedup/diversify, packs/windows, citations</title></rect>
+      <text x="825" y="455" class="title">Context Builder</text>
+      <text x="825" y="480" class="text">Dedup, Diversify</text>
+      <text x="825" y="500" class="text">Context Packs &amp; Windows</text>
+      <text x="825" y="520" class="text">Citations &amp; Attributions</text>
+    </g>
+    <g>
+      <rect x="810" y="610" width="260" height="120" class="box"><title>Freshness &amp; Drift: Staleness checks, auto reindex triggers</title></rect>
+      <text x="825" y="635" class="title">Freshness &amp; Drift</text>
+      <text x="825" y="660" class="text">Staleness Checks</text>
+      <text x="825" y="680" class="text">Auto Reindex Triggers</text>
+    </g>
+    <g>
+      <rect x="810" y="750" width="260" height="140" class="box"><title>Session Memory: Short-term summaries, ephemeral per user/session</title></rect>
+      <text x="825" y="775" class="title">Session Memory</text>
+      <text x="825" y="800" class="text">Short-term Summaries</text>
+      <text x="825" y="820" class="text">Per User/Session</text>
+    </g>
 
-      <!-- Sources -->
-      <g>
-        <rect x="30" y="70" width="200" height="150" class="box"><title>Enterprise Data: CRM/ERP, OLTP, Lakehouse, Files</title></rect>
-        <text x="45" y="95" class="title">Enterprise Data</text>
-        <text x="45" y="120" class="text">CRM/ERP, OLTP DBs</text>
-        <text x="45" y="140" class="text">Data Lake/Lakehouse</text>
-        <text x="45" y="160" class="text">File Shares (PDF, DOCX)</text>
-      </g>
+    <!-- Orchestration & Trust -->
+    <g>
+      <rect x="1110" y="70" width="260" height="140" class="box"><title>LLM Router &amp; Tools: SLA/cost routing, tool registry, rate limits</title></rect>
+      <text x="1125" y="95" class="title">LLM Router &amp; Tools</text>
+      <text x="1125" y="120" class="text">Model Router (Cost/SLA)</text>
+      <text x="1125" y="140" class="text">Tools/Agents + Rate Limits</text>
+    </g>
+    <g>
+      <rect x="1110" y="230" width="260" height="160" class="box"><title>Guardrails &amp; Policy: Safety/PII filters, prompt firewall, schema validators</title></rect>
+      <text x="1125" y="255" class="title">Guardrails &amp; Policy</text>
+      <text x="1125" y="280" class="text">Safety/PII Filters</text>
+      <text x="1125" y="300" class="text">Prompt Firewall</text>
+      <text x="1125" y="320" class="text">Output JSON Validators</text>
+    </g>
+    <g>
+      <rect x="1110" y="410" width="260" height="160" class="box"><title>Observability: Tracing, evals, latency/cost SLOs, shadow/canary</title></rect>
+      <text x="1125" y="435" class="title">Observability</text>
+      <text x="1125" y="460" class="text">Tracing (Spans/Evals)</text>
+      <text x="1125" y="480" class="text">Latency/Cost SLOs</text>
+      <text x="1125" y="500" class="text">Shadow/Canary, Kill Switch</text>
+    </g>
+    <g>
+      <rect x="1110" y="590" width="260" height="140" class="box"><title>Feedback &amp; Learning: Ratings/clicks, offline evals, auto-tuning</title></rect>
+      <text x="1125" y="615" class="title">Feedback &amp; Learning</text>
+      <text x="1125" y="640" class="text">User Ratings/Clicks</text>
+      <text x="1125" y="660" class="text">Offline Evals/A&amp;B</text>
+      <text x="1125" y="680" class="text">Auto Tuning Pipelines</text>
+    </g>
+    <g>
+      <rect x="1110" y="750" width="260" height="140" class="box"><title>Delivery: APIs, Chat/Apps, Webhooks, Batch, Auth/Quotas</title></rect>
+      <text x="1125" y="775" class="title">Delivery</text>
+      <text x="1125" y="800" class="text">APIs, Chat, Apps</text>
+      <text x="1125" y="820" class="text">Auth (OAuth/JWT), Quotas</text>
+    </g>
 
-      <g>
-        <rect x="30" y="240" width="200" height="150" class="box"><title>SaaS &amp; Docs: Confluence, SharePoint, Slack/Teams, Email, KB/Policies</title></rect>
-        <text x="45" y="265" class="title">SaaS &amp; Docs</text>
-        <text x="45" y="290" class="text">Confluence, SharePoint</text>
-        <text x="45" y="310" class="text">Slack/Teams, Email</text>
-        <text x="45" y="330" class="text">KB/Policies</text>
-      </g>
+    <!-- Main flow arrows -->
+    <line x1="230" y1="145" x2="270" y2="145" class="arrow"><title>Sources → Ingestion</title></line>
+    <line x1="230" y1="315" x2="270" y2="315" class="arrow"/>
+    <line x1="230" y1="485" x2="270" y2="485" class="arrow"/>
+    <line x1="230" y1="655" x2="270" y2="655" class="arrow"/>
+    <line x1="230" y1="825" x2="270" y2="825" class="arrow"><title>Identity → Policy-as-Code</title></line>
 
-      <g>
-        <rect x="30" y="410" width="200" height="150" class="box"><title>Logs &amp; Streams: Kafka/Kinesis, Product Events, Chats</title></rect>
-        <text x="45" y="435" class="title">Logs &amp; Streams</text>
-        <text x="45" y="460" class="text">Kafka/Kinesis</text>
-        <text x="45" y="480" class="text">Product/Click Events</text>
-        <text x="45" y="500" class="text">Chat Transcripts</text>
-      </g>
+    <line x1="490" y1="140" x2="530" y2="140" class="arrow"><title>Ingestion → Storage</title></line>
+    <line x1="490" y1="300" x2="530" y2="300" class="arrow"><title>Ingestion → Vector/Graph</title></line>
+    <line x1="490" y1="450" x2="530" y2="450" class="arrow"><title>Ingestion → Search</title></line>
+    <line x1="490" y1="600" x2="530" y2="600" class="arrow"><title>Ingestion → Cache</title></line>
 
-      <g>
-        <rect x="30" y="580" width="200" height="150" class="box"><title>Domain Assets: Schemas, Ontologies, Taxonomies, PII Catalog</title></rect>
-        <text x="45" y="605" class="title">Domain Assets</text>
-        <text x="45" y="630" class="text">Schemas, Ontologies</text>
-        <text x="45" y="650" class="text">Taxonomies</text>
-        <text x="45" y="670" class="text">PII Catalog</text>
-      </g>
+    <line x1="770" y1="140" x2="810" y2="140" class="arrow"/>
+    <line x1="770" y1="300" x2="810" y2="300" class="arrow"/>
+    <line x1="770" y1="460" x2="810" y2="460" class="arrow"/>
+    <line x1="770" y1="620" x2="810" y2="620" class="arrow"/>
 
-      <!-- Ingestion & Governance -->
-      <g>
-        <rect x="270" y="70" width="220" height="140" class="box"><title>Connectors &amp; CDC: Incremental Sync, Parsers/OCR</title></rect>
-        <text x="285" y="95" class="title">Connectors &amp; CDC</text>
-        <text x="285" y="120" class="text">Incremental Sync, Batching</text>
-        <text x="285" y="140" class="text">File Parsers (PDF/OCR)</text>
-      </g>
+    <line x1="1070" y1="140" x2="1110" y2="140" class="arrow"/>
+    <line x1="1070" y1="310" x2="1110" y2="310" class="arrow"><title>Policy gating → Guardrails</title></line>
+    <line x1="1070" y1="490" x2="1110" y2="490" class="arrow"/>
+    <line x1="1070" y1="660" x2="1110" y2="660" class="arrow"/>
 
-      <g>
-        <rect x="270" y="230" width="220" height="140" class="box"><title>Pre-Proc &amp; Chunking: Semantic Chunking, Metadata, Embeddings versioning</title></rect>
-        <text x="285" y="255" class="title">Pre-Proc &amp; Chunking</text>
-        <text x="285" y="280" class="text">Semantic Chunking</text>
-        <text x="285" y="300" class="text">Metadata Enrichment</text>
-        <text x="285" y="320" class="text">Embeddings vReg</text>
-      </g>
+    <!-- Feedback/maintenance loops -->
+    <line x1="1240" y1="720" x2="860" y2="530" class="arrow"><title>Feedback → Better Context</title></line>
+    <text x="990" y="610" class="small">Signals → Better Context</text>
 
-      <g>
-        <rect x="270" y="390" width="220" height="140" class="box"><title>Governance: Data Contracts, PII Redaction, RBAC</title></rect>
-        <text x="285" y="415" class="title">Governance</text>
-        <text x="285" y="440" class="text">Data Contracts</text>
-        <text x="285" y="460" class="text">PII Detection/Redaction</text>
-        <text x="285" y="480" class="text">Row/Column RBAC</text>
-      </g>
+    <line x1="1240" y1="720" x2="560" y2="740" class="arrow"><title>Signals → Re-embed Queue</title></line>
+    <text x="815" y="720" class="small">Signals → Cache/Index Updates</text>
 
-      <g>
-        <rect x="270" y="550" width="220" height="140" class="box"><title>Quality &amp; Lineage: DQ Checks, Tests, Lineage</title></rect>
-        <text x="285" y="575" class="title">Quality &amp; Lineage</text>
-        <text x="285" y="600" class="text">DQ Checks, Schematests</text>
-        <text x="285" y="620" class="text">Lineage to Source</text>
-      </g>
+    <line x1="1240" y1="720" x2="300" y2="780" class="arrow"><title>Policy/Evals → Policy-as-Code</title></line>
+    <text x="560" y="765" class="small">Policy/Evals → Governance</text>
 
-      <!-- Storage & Indexing -->
-      <g>
-        <rect x="530" y="70" width="240" height="130" class="box"><title>Storage: Lakehouse/Object Store, OLTP/OLAP</title></rect>
-        <text x="545" y="95" class="title">Storage</text>
-        <text x="545" y="120" class="text">Lakehouse/Object Store</text>
-        <text x="545" y="140" class="text">OLTP/OLAP (RDBMS)</text>
-      </g>
+    <!-- Legend -->
+    <g>
+      <rect x="520" y="860" width="480" height="80" class="box"/>
+      <text x="535" y="885" class="title">Key Metrics (track in Observability)</text>
+      <text x="535" y="905" class="small">Retrieval: recall@k, nDCG, leakage=0 | Gen: grounding%, JSON validity%, TTFT/latency/cost | Ops: index freshness lag, cache hit%, guardrail block%</text>
+    </g>
+  </svg>
 
-      <g>
-        <rect x="530" y="220" width="240" height="130" class="box"><title>Vector &amp; Graph: ANN (HNSW/IVF-PQ), Knowledge Graph</title></rect>
-        <text x="545" y="245" class="title">Vector &amp; Graph</text>
-        <text x="545" y="270" class="text">ANN (HNSW/IVF-PQ)</text>
-        <text x="545" y="290" class="text">Knowledge Graph</text>
-      </g>
+  <div id="tip"></div>
+</div>
 
-      <g>
-        <rect x="530" y="370" width="240" height="130" class="box"><title>Search Indexes: BM25, Hybrid, Temporal</title></rect>
-        <text x="545" y="395" class="title">Search Indexes</text>
-        <text x="545" y="420" class="text">BM25/Inverted</text>
-        <text x="545" y="440" class="text">Hybrid (Sparse+Dense)</text>
-        <text x="545" y="460" class="text">Temporal/TTL Partitions</text>
-      </g>
+<script>
+  // Tooltip from <title> elements
+  (function(){
+    const tip=document.getElementById('tip'),svg=document.getElementById('arch');
+    function show(e,t){ if(!t){tip.style.opacity=0;return;} tip.textContent=t; tip.style.opacity=1; tip.style.transform='translateY(0)';
+      const p=12; tip.style.left=(e.clientX+p)+'px'; tip.style.top=(e.clientY+p)+'px';}
+    function hide(){tip.style.opacity=0; tip.style.transform='translateY(-6px)';}
+    svg.addEventListener('mousemove',e=>{const el=e.target.closest('.box,.arrow'); if(!el){hide();return;}
+      const t=el.querySelector('title'); show(e,t?t.textContent:'');}); svg.addEventListener('mouseleave',hide);
+  })();
 
-      <g>
-        <rect x="530" y="520" width="240" height="130" class="box"><title>Semantic Cache: Answers, Context, Embeddings TTL</title></rect>
-        <text x="545" y="545" class="title">Semantic Cache</text>
-        <text x="545" y="570" class="text">Answer/Context Cache</text>
-        <text x="545" y="590" class="text">Embeddings w/ TTL</text>
-      </g>
-
-      <!-- Context Engineering -->
-      <g>
-        <rect x="810" y="70" width="260" height="140" class="box"><title>Query Understanding: Intent, Entities, Rewriting</title></rect>
-        <text x="825" y="95" class="title">Query Understanding</text>
-        <text x="825" y="120" class="text">Intent Classifier, Entities</text>
-        <text x="825" y="140" class="text">Query Rewriter (HyDE)</text>
-      </g>
-
-      <g>
-        <rect x="810" y="230" width="260" height="180" class="box"><title>Planner &amp; Retrieval: Multi-index, RBAC filters, Recency boost, Re-rank</title></rect>
-        <text x="825" y="255" class="title">Planner &amp; Retrieval</text>
-        <text x="825" y="280" class="text">Multi-Index Fan-out</text>
-        <text x="825" y="300" class="text">Access-aware Filters</text>
-        <text x="825" y="320" class="text">Recency/Time Decay Boost</text>
-        <text x="825" y="340" class="text">Cross-Encoder Re-rank</text>
-      </g>
-
-      <g>
-        <rect x="810" y="430" width="260" height="160" class="box"><title>Context Builder: Dedup/Diversify, Packs/Windows, Citations</title></rect>
-        <text x="825" y="455" class="title">Context Builder</text>
-        <text x="825" y="480" class="text">Dedup, Diversify</text>
-        <text x="825" y="500" class="text">Context Packs &amp; Windows</text>
-        <text x="825" y="520" class="text">Citations &amp; Attributions</text>
-      </g>
-
-      <g>
-        <rect x="810" y="610" width="260" height="120" class="box"><title>Freshness &amp; Drift: Staleness Checks, Auto Reindex</title></rect>
-        <text x="825" y="635" class="title">Freshness &amp; Drift</text>
-        <text x="825" y="660" class="text">Staleness Checks</text>
-        <text x="825" y="680" class="text">Auto Reindex Triggers</text>
-      </g>
-
-      <!-- Orchestration & Trust -->
-      <g>
-        <rect x="1110" y="70" width="260" height="140" class="box"><title>LLM Router &amp; Tools: Model routing by SLA/Cost, Tools/Agents</title></rect>
-        <text x="1125" y="95" class="title">LLM Router &amp; Tools</text>
-        <text x="1125" y="120" class="text">Model Router (Cost/SLA)</text>
-        <text x="1125" y="140" class="text">Functions/Tools/Agents</text>
-      </g>
-
-      <g>
-        <rect x="1110" y="230" width="260" height="160" class="box"><title>Guardrails &amp; Policy: Safety, PII, Prompt registry/versioning</title></rect>
-        <text x="1125" y="255" class="title">Guardrails &amp; Policy</text>
-        <text x="1125" y="280" class="text">Safety Filters, PII Guard</text>
-        <text x="1125" y="300" class="text">Prompt Registry/Versioning</text>
-        <text x="1125" y="320" class="text">Grounding Required?</text>
-      </g>
-
-      <g>
-        <rect x="1110" y="410" width="260" height="160" class="box"><title>Observability: Tracing/Evals, Hallucinations, SLOs</title></rect>
-        <text x="1125" y="435" class="title">Observability</text>
-        <text x="1125" y="460" class="text">Tracing (Spans/Evals)</text>
-        <text x="1125" y="480" class="text">Hallucination Scores</text>
-        <text x="1125" y="500" class="text">Latency/Cost SLOs</text>
-      </g>
-
-      <g>
-        <rect x="1110" y="590" width="260" height="140" class="box"><title>Feedback &amp; Learning: Ratings/Clicks, Offline evals, Auto-tuning</title></rect>
-        <text x="1125" y="615" class="title">Feedback &amp; Learning</text>
-        <text x="1125" y="640" class="text">User Ratings/Clicks</text>
-        <text x="1125" y="660" class="text">Offline Evals/A&amp;B</text>
-        <text x="1125" y="680" class="text">Auto Tuning Pipelines</text>
-      </g>
-
-      <g>
-        <rect x="1110" y="750" width="260" height="140" class="box"><title>Delivery: APIs, Chat/Apps, Webhooks, Batch</title></rect>
-        <text x="1125" y="775" class="title">Delivery</text>
-        <text x="1125" y="800" class="text">APIs, Chat, Apps</text>
-        <text x="1125" y="820" class="text">Webhooks, Batch Jobs</text>
-      </g>
-
-      <!-- Flow arrows -->
-      <line x1="230" y1="145" x2="270" y2="145" class="arrow"><title>Sources → Ingestion</title></line>
-      <line x1="230" y1="315" x2="270" y2="315" class="arrow"><title>Sources → Ingestion</title></line>
-      <line x1="230" y1="485" x2="270" y2="485" class="arrow"><title>Sources → Ingestion</title></line>
-      <line x1="230" y1="655" x2="270" y2="655" class="arrow"><title>Sources → Ingestion</title></line>
-
-      <line x1="490" y1="140" x2="530" y2="140" class="arrow"><title>Ingestion → Storage</title></line>
-      <line x1="490" y1="300" x2="530" y2="300" class="arrow"><title>Ingestion → Vector/Graph</title></line>
-      <line x1="490" y1="450" x2="530" y2="450" class="arrow"><title>Ingestion → Search</title></line>
-      <line x1="490" y1="600" x2="530" y2="600" class="arrow"><title>Ingestion → Cache</title></line>
-
-      <line x1="770" y1="140" x2="810" y2="140" class="arrow"><title>Storage → Query Understanding</title></line>
-      <line x1="770" y1="300" x2="810" y2="300" class="arrow"><title>Indexes → Planner/Retrieval</title></line>
-      <line x1="770" y1="460" x2="810" y2="460" class="arrow"><title>Indexes → Context Builder</title></line>
-      <line x1="770" y1="620" x2="810" y2="620" class="arrow"><title>Cache → Freshness/Drift</title></line>
-
-      <line x1="1070" y1="140" x2="1110" y2="140" class="arrow"><title>Context → Router/Tools</title></line>
-      <line x1="1070" y1="310" x2="1110" y2="310" class="arrow"><title>Policy → Guardrails</title></line>
-      <line x1="1070" y1="490" x2="1110" y2="490" class="arrow"><title>Signals → Observability</title></line>
-      <line x1="1070" y1="660" x2="1110" y2="660" class="arrow"><title>Signals → Feedback</title></line>
-
-      <!-- Feedback loops -->
-      <line x1="1240" y1="720" x2="860" y2="530" class="arrow"><title>Feedback → Better Context</title></line>
-      <text x="990" y="610" class="small">Signals → Better Context</text>
-
-      <line x1="1240" y1="720" x2="560" y2="580" class="arrow"><title>Feedback → Cache/Index Updates</title></line>
-      <text x="815" y="690" class="small">Signals → Cache/Index Updates</text>
-
-      <line x1="1240" y1="720" x2="300" y2="460" class="arrow"><title>Evals → Governance</title></line>
-      <text x="560" y="735" class="small">Policy/Evals → Governance</text>
-    </svg>
-
-    <div id="tip"></div>
-  </div>
-
-  <script>
-    // Tooltip (reads <title> from hovered .box/.arrow)
-    (function(){
-      const tip = document.getElementById('tip');
-      const svg = document.getElementById('arch');
-      function showTip(e, text){
-        if(!text){ tip.style.opacity=0; return; }
-        tip.textContent = text;
-        tip.style.opacity = 1;
-        tip.style.transform = 'translateY(0)';
-        const pad = 12;
-        tip.style.left = (e.clientX + pad) + 'px';
-        tip.style.top  = (e.clientY + pad) + 'px';
-      }
-      function hideTip(){ tip.style.opacity = 0; tip.style.transform = 'translateY(-6px)'; }
-      svg.addEventListener('mousemove', (e) => {
-        const el = e.target.closest('.box, .arrow');
-        if(!el){ hideTip(); return; }
-        const t = el.querySelector('title');
-        showTip(e, t ? t.textContent : '');
-      });
-      svg.addEventListener('mouseleave', hideTip);
-    })();
-
-    // PNG export
-    async function exportPNG(scale=1){
-      const svg = document.getElementById('arch');
-      const vb = svg.viewBox.baseVal;
-      const w = vb && vb.width ? vb.width : parseInt(svg.getAttribute('width'),10);
-      const h = vb && vb.height ? vb.height : parseInt(svg.getAttribute('height'),10);
-
-      const clone = svg.cloneNode(true);
-      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-      clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
-
-      const xml = new XMLSerializer().serializeToString(clone);
-      const url = URL.createObjectURL(new Blob([xml], {type:'image/svg+xml;charset=utf-8'}));
-
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        const ctx = canvas.getContext('2d');
-        ctx.setTransform(scale,0,0,scale,0,0);
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
-        canvas.toBlob((blob) => {
-          const a = document.createElement('a');
-          a.download = scale === 1 ? 'context_engineering_enterprise.png'
-                                   : `context_engineering_enterprise@${scale}x.png`;
-          a.href = URL.createObjectURL(blob); a.click();
-          setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
-        }, 'image/png');
-      };
-      img.src = url;
-    }
-    document.getElementById('save1x').addEventListener('click', () => exportPNG(1));
-    document.getElementById('save2x').addEventListener('click', () => exportPNG(2));
-  </script>
+  // PNG export
+  async function exportPNG(scale=1){
+    const svg=document.getElementById('arch'),vb=svg.viewBox.baseVal;
+    const w=vb.width||parseInt(svg.getAttribute('width'),10),h=vb.height||parseInt(svg.getAttribute('height'),10);
+    const clone=svg.cloneNode(true); clone.setAttribute('xmlns','http://www.w3.org/2000/svg'); clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+    const xml=new XMLSerializer().serializeToString(clone); const url=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
+    const img=new Image(); img.decoding='async'; img.onload=()=>{const c=document.createElement('canvas'); c.width=Math.round(w*scale); c.height=Math.round(h*scale);
+      const ctx=c.getContext('2d'); ctx.setTransform(scale,0,0,scale,0,0); ctx.drawImage(img,0,0); URL.revokeObjectURL(url);
+      c.toBlob(b=>{const a=document.createElement('a'); a.download=scale===1?'context_engineering_enterprise_plus.png':`context_engineering_enterprise_plus@${scale}x.png`;
+        a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500);},'image/png');}; img.src=url;
+  }
+  document.getElementById('save1x').addEventListener('click',()=>exportPNG(1));
+  document.getElementById('save2x').addEventListener('click',()=>exportPNG(2));
+</script>
 </body>
 </html>
