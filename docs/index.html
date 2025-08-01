@@ -7,19 +7,16 @@
   <style>
     :root { --bg:#ffffff; --text:#0f172a; --muted:#334155; --border:#e5e7eb; }
     body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:var(--text); background:var(--bg); }
-    .wrap { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
+    .wrap { max-width:1400px; margin:24px auto; padding:0 16px; overflow-x:auto; }
     header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    h1 { font-size: 20px; margin:0; }
-    .actions { display:flex; gap:8px; flex-wrap: wrap; }
-    button {
-      border:1px solid var(--border); padding:8px 12px; border-radius:10px;
-      background:#f8fafc; cursor:pointer; font-size:14px;
-    }
+    h1 { font-size:20px; margin:0; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    button { border:1px solid var(--border); padding:8px 12px; border-radius:10px; background:#f8fafc; cursor:pointer; font-size:14px; }
     button:hover { background:#eef2ff; }
     .panel { font-size:12px; color:var(--muted); margin-bottom:8px; }
-    svg { width:100%; height:auto; border:1px solid var(--border); border-radius:12px; background:#fff; }
+    svg { width:100%; height:auto; border:1px solid var(--border); border-radius:12px; background:#fff; overflow:visible; }
 
-    /* SVG inside styles */
+    /* SVG-inside styles */
     .lane { fill:#ffffff; stroke:#bbb; stroke-width:1; rx:12; ry:12; }
     .box  { fill:#f8f9fa; stroke:#333; stroke-width:1.5; rx:10; ry:10; transition:fill .15s, stroke .15s; }
     .box:hover { fill:#eef6ff; stroke:#1f4d8f; }
@@ -28,18 +25,13 @@
     .small { font:12px sans-serif; fill:#444; }
     .grp-title { font:bold 18px sans-serif; fill:#0f172a; }
 
-    .arrow { stroke:#333; stroke-width:2; marker-end:url(#arrowhead); }
-    /* Interactive arrows: dash + hover emphasis */
-    .arrow { stroke-dasharray:6 6; animation: flow 2.2s linear infinite; }
+    .arrow { stroke:#333; stroke-width:2; marker-end:url(#arrowhead); stroke-dasharray:6 6; animation:flow 2.2s linear infinite; }
     .arrow:hover { stroke-width:3; }
     @keyframes flow { to { stroke-dashoffset:-120; } }
 
-    /* Tooltip */
-    #tip {
-      position:fixed; pointer-events:none; padding:6px 8px; font-size:12px;
-      background:#0f172a; color:#fff; border-radius:6px; opacity:0; transform:translateY(-6px);
-      transition:opacity .12s, transform .12s;
-    }
+    #tip { position:fixed; pointer-events:none; padding:6px 8px; font-size:12px;
+           background:#0f172a; color:#fff; border-radius:6px; opacity:0; transform:translateY(-6px);
+           transition:opacity .12s, transform .12s; }
   </style>
 </head>
 <body>
@@ -53,8 +45,11 @@
     </header>
     <div class="panel">Hover boxes or arrows for quick hints. Use the buttons to export a PNG directly from this page.</div>
 
-    <!-- Inline SVG (id="arch" is used by the PNG export script) -->
-    <svg id="arch" width="1400" height="950" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context Engineering Architecture">
+    <!-- Important: viewBox enables proper scaling; preserveAspectRatio prevents clipping -->
+    <svg id="arch" width="1400" height="950" viewBox="0 0 1400 950"
+         preserveAspectRatio="xMidYMid meet"
+         xmlns="http://www.w3.org/2000/svg" role="img"
+         aria-label="Context Engineering Architecture">
 
       <!-- Arrowhead -->
       <defs>
@@ -63,7 +58,7 @@
         </marker>
       </defs>
 
-      <!-- Swimlanes (columns) -->
+      <!-- Swimlanes -->
       <rect x="20"  y="20"  width="220" height="910" class="lane"/>
       <text x="30"  y="45" class="grp-title">Sources</text>
 
@@ -244,7 +239,7 @@
         <text x="1125" y="820" class="text">Webhooks, Batch Jobs</text>
       </g>
 
-      <!-- Arrows (left to right major flow) -->
+      <!-- Flow arrows -->
       <line x1="230" y1="145" x2="270" y2="145" class="arrow"><title>Sources → Ingestion</title></line>
       <line x1="230" y1="315" x2="270" y2="315" class="arrow"><title>Sources → Ingestion</title></line>
       <line x1="230" y1="485" x2="270" y2="485" class="arrow"><title>Sources → Ingestion</title></line>
@@ -280,76 +275,63 @@
   </div>
 
   <script>
-    // Simple custom tooltip (uses <title> content)
+    // Tooltip (reads <title> from hovered .box/.arrow)
     (function(){
       const tip = document.getElementById('tip');
       const svg = document.getElementById('arch');
-
       function showTip(e, text){
-        if(!text) return;
+        if(!text){ tip.style.opacity=0; return; }
         tip.textContent = text;
         tip.style.opacity = 1;
         tip.style.transform = 'translateY(0)';
         const pad = 12;
-        const x = e.clientX + pad;
-        const y = e.clientY + pad;
-        tip.style.left = x + 'px';
-        tip.style.top  = y + 'px';
+        tip.style.left = (e.clientX + pad) + 'px';
+        tip.style.top  = (e.clientY + pad) + 'px';
       }
-      function hideTip(){
-        tip.style.opacity = 0;
-        tip.style.transform = 'translateY(-6px)';
-      }
-
+      function hideTip(){ tip.style.opacity = 0; tip.style.transform = 'translateY(-6px)'; }
       svg.addEventListener('mousemove', (e) => {
         const el = e.target.closest('.box, .arrow');
         if(!el){ hideTip(); return; }
-        const title = el.querySelector('title');
-        showTip(e, title ? title.textContent : '');
+        const t = el.querySelector('title');
+        showTip(e, t ? t.textContent : '');
       });
       svg.addEventListener('mouseleave', hideTip);
     })();
 
-    // PNG export (client-side)
-    async function exportPNG(scale = 1){
+    // PNG export
+    async function exportPNG(scale=1){
       const svg = document.getElementById('arch');
-      const w = svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal.width : parseInt(svg.getAttribute('width'),10);
-      const h = svg.viewBox.baseVal && svg.viewBox.baseVal.height ? svg.viewBox.baseVal.height : parseInt(svg.getAttribute('height'),10);
+      const vb = svg.viewBox.baseVal;
+      const w = vb && vb.width ? vb.width : parseInt(svg.getAttribute('width'),10);
+      const h = vb && vb.height ? vb.height : parseInt(svg.getAttribute('height'),10);
 
-      // clone to ensure computed marker links resolve
       const clone = svg.cloneNode(true);
-      // inline XML namespaces
-      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
 
-      const serializer = new XMLSerializer();
-      const svgStr = serializer.serializeToString(clone);
-      const blob = new Blob([svgStr], {type: 'image/svg+xml;charset=utf-8'});
-      const url = URL.createObjectURL(blob);
+      const xml = new XMLSerializer().serializeToString(clone);
+      const url = URL.createObjectURL(new Blob([xml], {type:'image/svg+xml;charset=utf-8'}));
 
       const img = new Image();
       img.decoding = 'async';
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width  = Math.round(w * scale);
+        canvas.width = Math.round(w * scale);
         canvas.height = Math.round(h * scale);
         const ctx = canvas.getContext('2d');
         ctx.setTransform(scale,0,0,scale,0,0);
         ctx.drawImage(img, 0, 0);
         URL.revokeObjectURL(url);
-
-        canvas.toBlob((pngBlob) => {
+        canvas.toBlob((blob) => {
           const a = document.createElement('a');
           a.download = scale === 1 ? 'context_engineering_enterprise.png'
                                    : `context_engineering_enterprise@${scale}x.png`;
-          a.href = URL.createObjectURL(pngBlob);
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+          a.href = URL.createObjectURL(blob); a.click();
+          setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
         }, 'image/png');
       };
       img.src = url;
     }
-
     document.getElementById('save1x').addEventListener('click', () => exportPNG(1));
     document.getElementById('save2x').addEventListener('click', () => exportPNG(2));
   </script>
