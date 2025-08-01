@@ -1,333 +1,105 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Context Engineering Architecture – Enterprise+</title>
-<style>
-  :root{--bg:#fff;--text:#0f172a;--muted:#334155;--border:#e5e7eb}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);background:var(--bg)}
-  .wrap{max-width:1400px;margin:24px auto;padding:0 16px;overflow-x:auto}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  h1{font-size:20px;margin:0}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  button{border:1px solid var(--border);padding:8px 12px;border-radius:10px;background:#f8fafc;cursor:pointer;font-size:14px}
-  button:hover{background:#eef2ff}
-  .panel{font-size:12px;color:var(--muted);margin-bottom:8px}
-  svg{width:100%;height:auto;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:visible}
+import openai
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
 
-  /* SVG styles */
-  .lane{fill:#fff;stroke:#bbb;stroke-width:1;rx:12;ry:12}
-  .box{fill:#f8f9fa;stroke:#333;stroke-width:1.5;rx:10;ry:10;transition:fill .15s,stroke .15s}
-  .box:hover{fill:#eef6ff;stroke:#1f4d8f}
-  .title{font:bold 16px sans-serif;fill:#111}
-  .text{font:14px sans-serif;fill:#333}
-  .small{font:12px sans-serif;fill:#444}
-  .grp-title{font:bold 18px sans-serif;fill:#0f172a}
+# ----------- A. Simulated Data Sources -----------
+crm = {
+    "cust-1234": {"name": "Jane Doe", "orders": ["Order#1245 - Delivered 2 days ago"]}
+}
+knowledge_base = [
+    {"id": 1, "text": "Return within 30 days, free shipping", "tags": ["policy", "return"]},
+    {"id": 2, "text": "How do I return a defective item?", "tags": ["faq", "return"]}
+]
+chat_logs = [
+    {"customer": "Jane Doe", "msg": "I want to return my item", "sentiment": "neutral"}
+]
 
-  /* IMPORTANT: arrows should never fill */
-  .arrow{stroke:#333;stroke-width:2;marker-end:url(#arrowhead);stroke-dasharray:6 6;animation:flow 2.2s linear infinite;fill:none;vector-effect:non-scaling-stroke}
-  .arrow:hover{stroke-width:3}
-  .arrow.solid{stroke-dasharray:none;animation:none}
-  @keyframes flow{to{stroke-dashoffset:-120}}
+# ----------- B. Ingestion & Processing -----------
+def chunk_document(doc, max_tokens=30):
+    # Dummy chunker: splits by sentences for demo
+    return [s.strip() for s in doc.split('.') if s.strip()]
 
-  #tip{position:fixed;pointer-events:none;padding:6px 8px;font-size:12px;background:#0f172a;color:#fff;border-radius:6px;opacity:0;transform:translateY(-6px);transition:opacity .12s,transform .12s}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <h1>Context Engineering Architecture – Enterprise+</h1>
-    <div class="actions">
-      <button id="save1x">Export PNG (1×)</button>
-      <button id="save2x">Export PNG (2×)</button>
-    </div>
-  </header>
-  <div class="panel">Deny-by-default retrieval, ABAC pre-filter, scoped cache keys, freshness SLO, policy gates, golden-set canary, and observability evidence.</div>
+kb_chunks = []
+for kb in knowledge_base:
+    for chunk in chunk_document(kb["text"]):
+        kb_chunks.append({"text": chunk, "tags": kb["tags"], "id": kb["id"]})
 
-  <svg id="arch" width="1400" height="1008" viewBox="0 0 1400 1008" preserveAspectRatio="xMidYMid meet"
-       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context Engineering Architecture">
+# Enrich with metadata
+for chunk in kb_chunks:
+    chunk["customer_id"] = "cust-1234"
+    chunk["region"] = "US"
 
-    <defs>
-      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-        <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
-      </marker>
-    </defs>
+# ----------- C. Vector DB Build (FAISS) -----------
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
+corpus = [chunk["text"] for chunk in kb_chunks]
+corpus_embeddings = embedder.encode(corpus)
+index = faiss.IndexFlatL2(corpus_embeddings.shape[1])
+index.add(np.array(corpus_embeddings))
 
-    <!-- Swimlanes -->
-    <rect x="20"  y="20"  width="220" height="968" class="lane"/><text x="30"  y="45" class="grp-title">Sources</text>
-    <rect x="260" y="20"  width="240" height="968" class="lane"/><text x="270" y="45" class="grp-title">Ingestion &amp; Governance</text>
-    <rect x="520" y="20"  width="260" height="968" class="lane"/><text x="530" y="45" class="grp-title">Storage &amp; Indexing</text>
-    <rect x="800" y="20"  width="280" height="968" class="lane"/><text x="810" y="45" class="grp-title">Context Engineering</text>
-    <rect x="1100" y="20" width="280" height="968" class="lane"/><text x="1110" y="45" class="grp-title">Orchestration &amp; Trust</text>
+# ----------- D. Context Engineering Layer -----------
+def classify_intent(query):
+    # Dummy intent classifier
+    if "return" in query.lower():
+        return "return_request", 0.93
+    return "other", 0.80
 
-    <!-- Sources -->
-    <g>
-      <rect x="30" y="70" width="200" height="150" class="box"><title>Enterprise Data: CRM/ERP, OLTP, Lakehouse, Files</title></rect>
-      <text x="45" y="95" class="title">Enterprise Data</text>
-      <text x="45" y="120" class="text">CRM/ERP, OLTP DBs</text>
-      <text x="45" y="140" class="text">Data Lake/Lakehouse</text>
-      <text x="45" y="160" class="text">File Shares (PDF, DOCX)</text>
-    </g>
-    <g>
-      <rect x="30" y="240" width="200" height="150" class="box"><title>SaaS &amp; Docs: Confluence, SharePoint, Slack/Teams, Email, KB/Policies</title></rect>
-      <text x="45" y="265" class="title">SaaS &amp; Docs</text>
-      <text x="45" y="290" class="text">Confluence, SharePoint</text>
-      <text x="45" y="310" class="text">Slack/Teams, Email</text>
-      <text x="45" y="330" class="text">KB/Policies</text>
-    </g>
-    <g>
-      <rect x="30" y="410" width="200" height="150" class="box"><title>Logs &amp; Streams: Kafka/Kinesis, Product Events, Chats</title></rect>
-      <text x="45" y="435" class="title">Logs &amp; Streams</text>
-      <text x="45" y="460" class="text">Kafka/Kinesis</text>
-      <text x="45" y="480" class="text">Product/Click Events</text>
-      <text x="45" y="500" class="text">Chat Transcripts</text>
-    </g>
-    <g>
-      <rect x="30" y="580" width="200" height="150" class="box"><title>Domain Assets: Schemas, Ontologies, Taxonomies, PII Catalog</title></rect>
-      <text x="45" y="605" class="title">Domain Assets</text>
-      <text x="45" y="630" class="text">Schemas, Ontologies</text>
-      <text x="45" y="650" class="text">Taxonomies</text>
-      <text x="45" y="670" class="text">PII Catalog</text>
-    </g>
-    <g>
-      <rect x="30" y="750" width="200" height="150" class="box"><title>Identity &amp; Entitlements: IdP/HRIS, Groups/Roles, Claims</title></rect>
-      <text x="45" y="775" class="title">Identity &amp; Entitlements</text>
-      <text x="45" y="800" class="text">IdP/HRIS (SSO)</text>
-      <text x="45" y="820" class="text">Groups, Roles, Claims</text>
-      <text x="45" y="840" class="text">Region/Residency Flags</text>
-    </g>
+def search_context(query, top_k=2):
+    query_emb = embedder.encode([query])
+    D, I = index.search(np.array(query_emb), top_k)
+    return [kb_chunks[i] for i in I[0]]
 
-    <!-- Ingestion & Governance -->
-    <g>
-      <rect x="270" y="70" width="220" height="140" class="box"><title>Connectors &amp; CDC: Incremental Sync, Parsers/OCR</title></rect>
-      <text x="285" y="95" class="title">Connectors &amp; CDC</text>
-      <text x="285" y="120" class="text">Incremental Sync, Batching</text>
-      <text x="285" y="140" class="text">File Parsers (PDF/OCR)</text>
-    </g>
-    <g>
-      <rect x="270" y="230" width="220" height="160" class="box"><title>Pre-Proc &amp; Chunking: Semantic chunking, Metadata enrichment, Embedding registry/versioning with compatibility checks</title></rect>
-      <text x="285" y="255" class="title">Pre-Proc &amp; Chunking</text>
-      <text x="285" y="280" class="text">Semantic Chunking</text>
-      <text x="285" y="300" class="text">Metadata Enrichment</text>
-      <text x="285" y="320" class="text">Embedding Registry &amp; Versioning</text>
-      <text x="285" y="340" class="text">Model/Dim/Lang/Norm; Index Compat Checks</text>
-    </g>
-    <g>
-      <rect x="270" y="410" width="220" height="160" class="box"><title>Governance: Data contracts, PII redaction, RBAC/ABAC, retention/legal-hold</title></rect>
-      <text x="285" y="435" class="title">Governance</text>
-      <text x="285" y="460" class="text">Data Contracts</text>
-      <text x="285" y="480" class="text">PII Detection/Redaction</text>
-      <text x="285" y="500" class="text">Row/Column RBAC/ABAC</text>
-      <text x="285" y="520" class="text">Retention &amp; Legal-Hold → Index/Cache</text>
-    </g>
-    <g>
-      <rect x="270" y="580" width="220" height="140" class="box"><title>Quality &amp; Lineage: Schema tests, lineage, quarantine</title></rect>
-      <text x="285" y="605" class="title">Quality &amp; Lineage</text>
-      <text x="285" y="630" class="text">DQ Checks, Schema Tests</text>
-      <text x="285" y="650" class="text">Lineage to Source</text>
-    </g>
-    <g>
-      <rect x="270" y="740" width="220" height="140" class="box"><title>Policy-as-Code: Same rules at ingest and retrieval</title></rect>
-      <text x="285" y="765" class="title">Policy-as-Code</text>
-      <text x="285" y="790" class="text">OPA/Cedar Rules</text>
-      <text x="285" y="810" class="text">Same Policy Ingest↔Retrieval</text>
-    </g>
+def mask_pii(context):
+    # Mask name for demo
+    for c in context:
+        c["text"] = c["text"].replace("Jane Doe", "[REDACTED]")
+    return context
 
-    <!-- Storage & Indexing -->
-    <g>
-      <rect x="530" y="70" width="240" height="130" class="box"><title>Storage: Object/doc store with shared DocID join key</title></rect>
-      <text x="545" y="95" class="title">Storage</text>
-      <text x="545" y="120" class="text">Lakehouse/Object Store</text>
-      <text x="545" y="140" class="text">Shared DocID (join key)</text>
-    </g>
-    <g>
-      <rect x="530" y="220" width="240" height="130" class="box"><title>Vector &amp; Graph: ANN (HNSW/IVF-PQ), Knowledge Graph</title></rect>
-      <text x="545" y="245" class="title">Vector &amp; Graph</text>
-      <text x="545" y="270" class="text">ANN (HNSW/IVF-PQ)</text>
-      <text x="545" y="290" class="text">Knowledge Graph</text>
-    </g>
-    <g>
-      <rect x="530" y="370" width="240" height="130" class="box"><title>Search Indexes: BM25/Inverted, Hybrid (Sparse+Dense), TTL/Temporal</title></rect>
-      <text x="545" y="395" class="title">Search Indexes</text>
-      <text x="545" y="420" class="text">BM25/Inverted</text>
-      <text x="545" y="440" class="text">Hybrid (Sparse+Dense)</text>
-      <text x="545" y="460" class="text">Temporal/TTL Partitions</text>
-    </g>
-    <g>
-      <rect x="530" y="520" width="240" height="150" class="box"><title>Semantic Cache: Scoped keys and safety</title></rect>
-      <text x="545" y="545" class="title">Semantic Cache</text>
-      <text x="545" y="570" class="text">Answer/Context Cache</text>
-      <text x="545" y="590" class="text">Scoped keys: tenant/role/region/policy/model/prompt</text>
-      <text x="545" y="610" class="text">No cross-tenant reads; TTL by sensitivity</text>
-    </g>
-    <g>
-      <rect x="530" y="680" width="240" height="160" class="box"><title>Index Freshness Jobs: Re-embed queue, incremental upserts, alerts, event invalidation</title></rect>
-      <text x="545" y="705" class="title">Index Freshness Jobs</text>
-      <text x="545" y="730" class="text">Re-embed Queue; Incremental Upserts</text>
-      <text x="545" y="750" class="text">Event-driven Invalidation (webhooks/Kafka)</text>
-      <text x="545" y="770" class="text">Freshness SLO &lt; 15m; Staleness Alerts</text>
-    </g>
+def package_envelope(context, customer_id, confidence):
+    customer = crm[customer_id]
+    envelope = {
+        "customer": customer["name"],
+        "recent_orders": customer["orders"],
+        "policy": next((c["text"] for c in context if "policy" in c["tags"]), ""),
+        "related_faq": next((c["text"] for c in context if "faq" in c["tags"]), ""),
+        "confidence": confidence
+    }
+    return envelope
 
-    <!-- Context Engineering -->
-    <g>
-      <rect x="810" y="70" width="260" height="140" class="box"><title>Query Understanding: Intent, Entities, Router, Language</title></rect>
-      <text x="825" y="95" class="title">Query Understanding</text>
-      <text x="825" y="120" class="text">Intent/Entities, Language</text>
-      <text x="825" y="140" class="text">Task Router</text>
-    </g>
-    <g>
-      <rect x="810" y="230" width="260" height="200" class="box"><title>Planner &amp; Retrieval: ABAC pre-filter, deny-by-default, multi-index, time-decay, re-rank</title></rect>
-      <text x="825" y="255" class="title">Planner &amp; Retrieval</text>
-      <text x="825" y="280" class="text">ABAC Pre-filter (tenant/region/class)</text>
-      <text x="825" y="300" class="text">Deny-by-Default (policy first)</text>
-      <text x="825" y="320" class="text">Multi-Index Fan-out</text>
-      <text x="825" y="340" class="text">Recency/Time-Decay</text>
-      <text x="825" y="360" class="text">Cross-Encoder Re-rank</text>
-    </g>
-    <g>
-      <rect x="810" y="450" width="260" height="160" class="box"><title>Context Builder: Dedup/diversify, packs/windows, citations</title></rect>
-      <text x="825" y="475" class="title">Context Builder</text>
-      <text x="825" y="500" class="text">Dedup, Diversify</text>
-      <text x="825" y="520" class="text">Context Packs &amp; Windows</text>
-      <text x="825" y="540" class="text">Citations &amp; Attributions</text>
-    </g>
-    <g>
-      <rect x="810" y="620" width="260" height="120" class="box"><title>Freshness &amp; Drift: Staleness checks, auto reindex triggers</title></rect>
-      <text x="825" y="645" class="title">Freshness &amp; Drift</text>
-      <text x="825" y="670" class="text">Staleness Checks</text>
-      <text x="825" y="690" class="text">Auto Reindex Triggers</text>
-    </g>
-    <g>
-      <rect x="810" y="760" width="260" height="140" class="box"><title>Session Memory: TTL summaries per user/session</title></rect>
-      <text x="825" y="785" class="title">Session Memory</text>
-      <text x="825" y="810" class="text">Short-term Summaries (TTL)</text>
-      <text x="825" y="830" class="text">Per User/Session</text>
-    </g>
+# ----------- E. LLM Orchestration Layer -----------
+def call_llm(envelope):
+    openai.api_key = "sk-..."  # Put your OpenAI key here
+    prompt = f"""Customer: {envelope['customer']}
+Recent Orders: {envelope['recent_orders']}
+Policy: {envelope['policy']}
+FAQ: {envelope['related_faq']}
+Query confidence: {envelope['confidence']}
+Respond to customer question: "How do I return a defective item?"
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role":"system","content":"You are a helpful support agent."},
+                  {"role":"user","content": prompt}]
+    )
+    return response['choices'][0]['message']['content']
 
-    <!-- Orchestration & Trust -->
-    <g>
-      <rect x="1110" y="70" width="260" height="200" class="box"><title>LLM Router &amp; Tools: SLA/cost & region routing, tool schema validation, per-tool limits, secrets broker, prompt/output cache</title></rect>
-      <text x="1125" y="95" class="title">LLM Router &amp; Tools</text>
-      <text x="1125" y="120" class="text">Model Router (Cost/SLA)</text>
-      <text x="1125" y="140" class="text">Region-aware Model/Index Routing</text>
-      <text x="1125" y="160" class="text">Schema-checked Tools; Per-tool Rate Limits</text>
-      <text x="1125" y="180" class="text">Secrets via Vault; Prompt/Output Cache (scoped TTL)</text>
-    </g>
-    <g>
-      <rect x="1110" y="290" width="260" height="190" class="box"><title>Guardrails &amp; Policy: Safety/PII filters, prompt firewall, schema validators, safe fallback</title></rect>
-      <text x="1125" y="315" class="title">Guardrails &amp; Policy</text>
-      <text x="1125" y="340" class="text">Safety/PII Filters (pre/post-gen)</text>
-      <text x="1125" y="360" class="text">Prompt Firewall</text>
-      <text x="1125" y="380" class="text">Output JSON Validators</text>
-      <text x="1125" y="400" class="text">Safe Fallback (no answer + cites)</text>
-    </g>
-    <g>
-      <rect x="1110" y="490" width="260" height="170" class="box"><title>Observability: Tracing, evidence logging, budgets/SLOs, shadow/canary</title></rect>
-      <text x="1125" y="515" class="title">Observability</text>
-      <text x="1125" y="540" class="text">Tracing (Spans/Evals)</text>
-      <text x="1125" y="560" class="text">Evidence: docIDs (hashed), policy decisions, re-rank deltas</text>
-      <text x="1125" y="580" class="text">Token/Cost Budgets; P95 Latency SLO; Error Budget</text>
-      <text x="1125" y="600" class="text">Shadow/Canary, Kill Switch</text>
-    </g>
-    <g>
-      <rect x="1110" y="670" width="260" height="140" class="box"><title>Feedback &amp; Learning: Ratings/clicks, golden set & offline eval harness, canary gate</title></rect>
-      <text x="1125" y="695" class="title">Feedback &amp; Learning</text>
-      <text x="1125" y="720" class="text">User Ratings/Clicks</text>
-      <text x="1125" y="740" class="text">Golden Q/A + Offline Eval Harness</text>
-      <text x="1125" y="760" class="text">Canary Gate (blocks regressions)</text>
-    </g>
-    <g>
-      <rect x="1110" y="830" width="260" height="140" class="box"><title>Delivery: APIs, Chat/Apps, Webhooks, Batch, Auth/Quotas</title></rect>
-      <text x="1125" y="855" class="title">Delivery</text>
-      <text x="1125" y="880" class="text">APIs, Chat, Apps</text>
-      <text x="1125" y="900" class="text">Auth (OAuth/JWT), Quotas</text>
-    </g>
+# ----------- F. Feedback Loop -----------
+def capture_feedback(response, useful=True):
+    print("Feedback captured:", {"response": response, "useful": useful})
 
-    <!-- Main flow arrows (solid = primary path) -->
-    <line x1="230" y1="145" x2="270" y2="145" class="arrow solid"><title>Sources → Ingestion</title></line>
-    <line x1="230" y1="315" x2="270" y2="315" class="arrow solid"/>
-    <line x1="230" y1="485" x2="270" y2="485" class="arrow solid"/>
-    <line x1="230" y1="655" x2="270" y2="655" class="arrow solid"/>
+# ----------- G. Observability & Trust -----------
+def log_observability(envelope, response):
+    print("Context Envelope:", envelope)
+    print("LLM Response:", response)
 
-    <line x1="490" y1="140" x2="530" y2="140" class="arrow solid"/>
-    <line x1="490" y1="300" x2="530" y2="300" class="arrow solid"/>
-    <line x1="490" y1="450" x2="530" y2="450" class="arrow solid"/>
-    <line x1="490" y1="600" x2="530" y2="600" class="arrow solid"/>
-
-    <line x1="770" y1="140" x2="810" y2="140" class="arrow solid"/>
-    <line x1="770" y1="330" x2="810" y2="330" class="arrow solid"/>
-    <line x1="770" y1="530" x2="810" y2="530" class="arrow solid"/>
-    <line x1="770" y1="680" x2="810" y2="680" class="arrow solid"/>
-
-    <line x1="1070" y1="140" x2="1110" y2="140" class="arrow solid"/>
-    <line x1="1070" y1="385" x2="1110" y2="385" class="arrow"><title>Policy gating → Guardrails</title></line>
-    <line x1="1070" y1="575" x2="1110" y2="575" class="arrow solid"/>
-    <line x1="1070" y1="740" x2="1110" y2="740" class="arrow solid"/>
-
-    <!-- Rerouted dashed paths (fill:none on polylines) -->
-    <!-- Identity → Planner (ABAC pre-filter) -->
-    <line x1="230" y1="825" x2="810" y2="330" class="arrow">
-  <title>Identity Claims → ABAC Pre-filter (policy-aware retrieval)</title>
-</line>
-
-    <!-- Observability → Policy-as-Code (ingest gate) -->
-    <polyline class="arrow" fill="none" points="1110,575 900,720 650,760 270,810">
-      <title>Policy/Evals → Policy-as-Code (ingest gate)</title>
-    </polyline>
-
-    <!-- Observability → Guardrails (query gate) -->
-    <polyline class="arrow" fill="none" points="1110,575 1140,450 1110,385">
-      <title>Policy/Evals → Guardrails (query gate)</title>
-    </polyline>
-
-    <!-- Legend -->
-    <g>
-      <rect x="35" y="940" width="330" height="36" class="box"/>
-      <text x="50" y="962" class="small">Legend: Solid = primary flow · Dashed = feedback/policy paths</text>
-    </g>
-
-    <g>
-      <rect x="500" y="890" width="520" height="100" class="box"/>
-      <text x="515" y="915" class="title">Key Metrics (track in Observability)</text>
-      <text x="515" y="935" class="small">Retrieval: recall@k, nDCG, leakage=0 | Gen: grounding%, JSON validity%, TTFT/latency/cost</text>
-      <text x="515" y="955" class="small">Ops: index freshness lag, re-embed backlog, cache hit%, guardrail block% | Audit: evidence logged</text>
-    </g>
-  </svg>
-
-  <div id="tip"></div>
-</div>
-
-<script>
-  // Tooltip from <title> elements
-  (function(){
-    const tip=document.getElementById('tip'),svg=document.getElementById('arch');
-    function show(e,t){ if(!t){tip.style.opacity=0;return;} tip.textContent=t; tip.style.opacity=1; tip.style.transform='translateY(0)';
-      const p=12; tip.style.left=(e.clientX+p)+'px'; tip.style.top=(e.clientY+p)+'px';}
-    function hide(){tip.style.opacity=0; tip.style.transform='translateY(-6px)';}
-    svg.addEventListener('mousemove',e=>{
-      const el=e.target.closest('.box,.arrow');
-      if(!el){hide();return;}
-      const titleEl = el.querySelector ? el.querySelector('title') : null;
-      const txt = titleEl ? titleEl.textContent : (el.getElementsByTagName?.('title')[0]?.textContent || '');
-      show(e, txt);
-    });
-    svg.addEventListener('mouseleave',hide);
-  })();
-
-  // PNG export
-  async function exportPNG(scale=1){
-    const svg=document.getElementById('arch'),vb=svg.viewBox.baseVal;
-    const w=vb.width||parseInt(svg.getAttribute('width'),10),h=vb.height||parseInt(svg.getAttribute('height'),10);
-    const clone=svg.cloneNode(true); clone.setAttribute('xmlns','http://www.w3.org/2000/svg'); clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
-    const xml=new XMLSerializer().serializeToString(clone); const url=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
-    const img=new Image(); img.decoding='async'; img.onload=()=>{const c=document.createElement('canvas'); c.width=Math.round(w*scale); c.height=Math.round(h*scale);
-      const ctx=c.getContext('2d'); ctx.setTransform(scale,0,0,scale,0,0); ctx.drawImage(img,0,0); URL.revokeObjectURL(url);
-      c.toBlob(b=>{const a=document.createElement('a'); a.download=scale===1?'context_engineering_enterprise_plus.png':`context_engineering_enterprise_plus@${scale}x.png`;
-        a.href=URL.createObjectURL(b); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500);},'image/png');}; img.src=url;
-  }
-  document.getElementById('save1x').addEventListener('click',()=>exportPNG(1));
-  document.getElementById('save2x').addEventListener('click',()=>exportPNG(2));
-</script>
-</body>
-</html>
+# ----------- MAIN FLOW -----------
+if __name__ == "__main__":
+    query = "How do I return a defective item?"
+    customer_id = "cust-1234"
+    intent, confidence = classify_intent(query)
+    context_chunks = search_context(query)
+    context_chunks = mask_pii(context_chunks)
+    envelope = package_envelope(context_chunks, customer_id, confidence)
+    llm_response = call_llm(envelope)
+    log_observability(envelope, llm_response)
+    capture_feedback(llm_response, useful=True)
