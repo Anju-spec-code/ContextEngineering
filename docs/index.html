@@ -25,7 +25,8 @@
   .small{font:12px sans-serif;fill:#444}
   .grp-title{font:bold 18px sans-serif;fill:#0f172a}
 
-  .arrow{stroke:#333;stroke-width:2;marker-end:url(#arrowhead);stroke-dasharray:6 6;animation:flow 2.2s linear infinite}
+  /* IMPORTANT: arrows should never fill */
+  .arrow{stroke:#333;stroke-width:2;marker-end:url(#arrowhead);stroke-dasharray:6 6;animation:flow 2.2s linear infinite;fill:none;vector-effect:non-scaling-stroke}
   .arrow:hover{stroke-width:3}
   .arrow.solid{stroke-dasharray:none;animation:none}
   @keyframes flow{to{stroke-dashoffset:-120}}
@@ -42,7 +43,7 @@
       <button id="save2x">Export PNG (2×)</button>
     </div>
   </header>
-  <div class="panel">Adds deny-by-default retrieval, scoped cache keys, secrets/region routing, retention/legal-hold, embedding compatibility, golden set &amp; canary, prompt/output cache, and clearer paths.</div>
+  <div class="panel">Deny-by-default retrieval, ABAC pre-filter, scoped cache keys, freshness SLO, policy gates, golden-set canary, and observability evidence.</div>
 
   <svg id="arch" width="1400" height="1008" viewBox="0 0 1400 1008" preserveAspectRatio="xMidYMid meet"
        xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Context Engineering Architecture">
@@ -243,7 +244,7 @@
       <text x="1125" y="900" class="text">Auth (OAuth/JWT), Quotas</text>
     </g>
 
-    <!-- Main flow arrows (solid for primary path) -->
+    <!-- Main flow arrows (solid = primary path) -->
     <line x1="230" y1="145" x2="270" y2="145" class="arrow solid"><title>Sources → Ingestion</title></line>
     <line x1="230" y1="315" x2="270" y2="315" class="arrow solid"/>
     <line x1="230" y1="485" x2="270" y2="485" class="arrow solid"/>
@@ -264,33 +265,26 @@
     <line x1="1070" y1="575" x2="1110" y2="575" class="arrow solid"/>
     <line x1="1070" y1="740" x2="1110" y2="740" class="arrow solid"/>
 
-    <!-- Rerouted dashed paths (avoid label collisions) -->
+    <!-- Rerouted dashed paths (fill:none on polylines) -->
     <!-- Identity → Planner (ABAC pre-filter) -->
-    <polyline class="arrow" points="230,825 300,825 300,700 780,700 810,300">
+    <polyline class="arrow" fill="none" points="230,825 300,825 300,700 780,700 810,300">
       <title>Identity Claims → ABAC Pre-filter (policy-aware retrieval)</title>
     </polyline>
 
-    <!-- Observability (policy/evals) → Policy-as-Code (ingest gate) -->
-    <polyline class="arrow" points="1110,575 900,720 650,760 270,810">
+    <!-- Observability → Policy-as-Code (ingest gate) -->
+    <polyline class="arrow" fill="none" points="1110,575 900,720 650,760 270,810">
       <title>Policy/Evals → Policy-as-Code (ingest gate)</title>
     </polyline>
 
     <!-- Observability → Guardrails (query gate) -->
-    <polyline class="arrow" points="1110,575 1140,450 1110,385">
+    <polyline class="arrow" fill="none" points="1110,575 1140,450 1110,385">
       <title>Policy/Evals → Guardrails (query gate)</title>
     </polyline>
-
-    <!-- Feedback/maintenance loops -->
-    <line x1="1240" y1="760" x2="860" y2="560" class="arrow"><title>Feedback → Better Context</title></line>
-    <text x="975" y="610" class="small">Signals → Better Context</text>
-
-    <line x1="1240" y1="760" x2="560" y2="760" class="arrow"><title>Signals → Re-embed Queue</title></line>
-    <text x="785" y="782" class="small">Signals → Cache/Index Updates</text>
 
     <!-- Legend -->
     <g>
       <rect x="35" y="940" width="330" height="36" class="box"/>
-      <text x="50" y="962" class="small">Legend: <tspan class="small">Solid = primary flow</tspan>  ·  <tspan class="small">Dashed = feedback/policy paths</tspan></text>
+      <text x="50" y="962" class="small">Legend: Solid = primary flow · Dashed = feedback/policy paths</text>
     </g>
 
     <g>
@@ -311,9 +305,13 @@
     function show(e,t){ if(!t){tip.style.opacity=0;return;} tip.textContent=t; tip.style.opacity=1; tip.style.transform='translateY(0)';
       const p=12; tip.style.left=(e.clientX+p)+'px'; tip.style.top=(e.clientY+p)+'px';}
     function hide(){tip.style.opacity=0; tip.style.transform='translateY(-6px)';}
-    svg.addEventListener('mousemove',e=>{const el=e.target.closest('.box,.arrow'); if(!el){hide();return;}
-      const t=el.querySelector && el.querySelector('title') ? el.querySelector('title') : el.tagName!=='line' ? el.querySelector('title') : null;
-      show(e, t ? t.textContent : (el.getElementsByTagName('title')[0]?.textContent || ''));});
+    svg.addEventListener('mousemove',e=>{
+      const el=e.target.closest('.box,.arrow');
+      if(!el){hide();return;}
+      const titleEl = el.querySelector ? el.querySelector('title') : null;
+      const txt = titleEl ? titleEl.textContent : (el.getElementsByTagName?.('title')[0]?.textContent || '');
+      show(e, txt);
+    });
     svg.addEventListener('mouseleave',hide);
   })();
 
